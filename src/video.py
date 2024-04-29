@@ -38,7 +38,20 @@ def capturar_video_y_detectar_arucos():
             mapa_cartas = cargar_mapa_cartas() # Cargar el mapa de cartas
             list_ids = [id[0] for id in ids] # Convertir los ids a una lista
             carta = identificar_carta(list_ids, mapa_cartas)
-            print(f"Carta identificada: {carta}")
+            texto = carta
+
+             # Calcular el ancho y la altura del texto
+            (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            
+            # Calcular la posición para centrar el texto en la parte inferior del frame
+            text_x = int((frame.shape[1] - text_width) / 2)
+            text_y = frame.shape[0] - 30  # Posición en la parte inferior
+
+            # Dibujar un cuadro de fondo azul detrás del texto
+            cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
+
+            # Dibujar el texto en blanco sobre el cuadro de fondo azul
+            cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Mostrar el frame en una ventana
         cv2.imshow("Video", frame)
