@@ -1,5 +1,4 @@
 import json
-import os
 
 # Funcion para cargar el mapa de cartas
 def cargar_mapa_cartas():

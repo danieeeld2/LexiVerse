@@ -1,4 +1,6 @@
 import cv2
+from identificar_carta import identificar_carta, cargar_mapa_cartas
+import numpy as np
 
 # Función para capturar video desde la cámara y detectar marcadores ArUco
 def capturar_video_y_detectar_arucos():
@@ -26,14 +28,17 @@ def capturar_video_y_detectar_arucos():
             print("Error: No se puede leer el frame")
             break
 
-        # Convertir el frame a escala de grises
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
         # Detectar marcadores ArUco en el frame
         corners, ids, _ = detector.detectMarkers(frame)
 
         # Dibujar los marcadores detectados en el frame
         frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+
+        if ids is not None:
+            mapa_cartas = cargar_mapa_cartas() # Cargar el mapa de cartas
+            list_ids = [id[0] for id in ids] # Convertir los ids a una lista
+            carta = identificar_carta(list_ids, mapa_cartas)
+            print(f"Carta identificada: {carta}")
 
         # Mostrar el frame en una ventana
         cv2.imshow("Video", frame)
