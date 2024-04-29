@@ -1,0 +1,62 @@
+{
+    "Carta1" : {
+        "español" : "Perro",
+        "ingles" : "Dog",
+        "frances" : "Chien"
+    },
+    "Carta2" : {
+        "español" : "Gato",
+        "ingles" : "Cat",
+        "frances" : "Chat"
+    },
+    "Carta3" : {
+        "español" : "Caballo",
+        "ingles" : "Horse",
+        "frances" : "Cheval"
+    },
+    "Carta4" : {
+        "español" : "Vaca",
+        "ingles" : "Cow",
+        "frances" : "Vache"
+    },
+    "Carta5" : {
+        "español" : "Cerdo",
+        "ingles" : "Pig",
+        "frances" : "Cochon"
+    },
+    "Carta6" : {
+        "español" : "Oveja",
+        "ingles" : "Sheep",
+        "frances" : "Mouton"
+    },
+    "Carta7" : {
+        "español" : "Conejo",
+        "ingles" : "Rabbit",
+        "frances" : "Lapin"
+    },
+    "Carta8" : {
+        "español" : "Pato",
+        "ingles" : "Duck",
+        "frances" : "Canard"
+    },
+    "Carta9" : {
+        "español" : "Gallina",
+        "ingles" : "Hen",
+        "frances" : "Poule"
+    },
+    "Carta10" : {
+        "español" : "Buho",
+        "ingles" : "Owl",
+        "frances" : "Hibou"
+    },
+    "Carta11" : {
+        "español" : "Zorro",
+        "ingles" : "Fox",
+        "frances" : "Renard"
+    },
+    "Carta12" : {
+        "español" : "Leon",
+        "ingles" : "Lion",
+        "frances" : "Lion"
+    }
+}
