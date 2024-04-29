@@ -1,13 +1,13 @@
 import json
 
-# Funcion para cargar el mapa de cartas
-def cargar_mapa_cartas():
-    # Cargar el archivo JSON con el mapa de cartas
-    with open("./data/map.json", "r") as file:
-        mapa_cartas = json.load(file)
+# Funcion para cargar un mapa en formato JSON
+def cargar_mapa(filename):
+    # Cargar el archivo JSON con el mapa 
+    with open(filename, "r") as file:
+        mapa = json.load(file)
     
-    # Retornar el mapa de cartas
-    return mapa_cartas
+    # Retornar el mapa 
+    return mapa
 
 # Funcion para identificar una carta basada en los marcadores
 def identificar_carta(marcadores_detectados, mapa_cartas, umbral_coincidencia=3):
@@ -32,7 +32,7 @@ def identificar_carta(marcadores_detectados, mapa_cartas, umbral_coincidencia=3)
 # Función principal
 def main():
     # Cargar el mapa de cartas
-    mapa_cartas = cargar_mapa_cartas()
+    mapa_cartas = cargar_mapa("./data/map.json")
     
     # Crear un diccionario con los marcadores detectados
     marcadores_detectados = {1, 21, 23, 22}

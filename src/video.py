@@ -1,5 +1,5 @@
 import cv2
-from identificar_carta import identificar_carta, cargar_mapa_cartas
+from identificar_carta import identificar_carta, cargar_mapa
 import numpy as np
 
 # Función para capturar video desde la cámara y detectar marcadores ArUco
@@ -35,14 +35,15 @@ def capturar_video_y_detectar_arucos():
         frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
         if ids is not None:
-            mapa_cartas = cargar_mapa_cartas() # Cargar el mapa de cartas
+            mapa_cartas = cargar_mapa("./data/map.json") # Cargar el mapa de cartas
             list_ids = [id[0] for id in ids] # Convertir los ids a una lista
             carta = identificar_carta(list_ids, mapa_cartas)
-            texto = carta
+            mapa_palabras = cargar_mapa("./data/cartas.json") # Cargar el mapa de palabras
+            texto = mapa_palabras[carta]["español"] if carta is not None else "Carta no identificada"
 
              # Calcular el ancho y la altura del texto
             (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-            
+
             # Calcular la posición para centrar el texto en la parte inferior del frame
             text_x = int((frame.shape[1] - text_width) / 2)
             text_y = frame.shape[0] - 30  # Posición en la parte inferior
