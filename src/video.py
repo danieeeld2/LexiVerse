@@ -1,6 +1,14 @@
 import cv2
 from identificar_carta import identificar_carta, cargar_mapa
 import numpy as np
+import pyttsx3
+import threading
+
+# Función para decir una palabra
+def decir_palabra(texto):
+    engine = pyttsx3.init()
+    engine.say(texto)
+    engine.runAndWait()
 
 # Función para capturar video desde la cámara y detectar marcadores ArUco
 def capturar_video_y_detectar_arucos():
@@ -17,6 +25,9 @@ def capturar_video_y_detectar_arucos():
 
     # Crear un objeto de detección de marcadores ArUco
     detector = cv2.aruco.ArucoDetector(aruco_dict)
+
+    carta_anterior = None
+    carta = None
 
     # Bucle para capturar video
     while True:
@@ -37,22 +48,28 @@ def capturar_video_y_detectar_arucos():
         if ids is not None:
             mapa_cartas = cargar_mapa("./data/map.json") # Cargar el mapa de cartas
             list_ids = [id[0] for id in ids] # Convertir los ids a una lista
+            carta_anterior = carta
             carta = identificar_carta(list_ids, mapa_cartas)
             mapa_palabras = cargar_mapa("./data/cartas.json") # Cargar el mapa de palabras
-            texto = mapa_palabras[carta]["español"] if carta is not None else "Carta no identificada"
+            texto = mapa_palabras[carta]["ingles"] if carta is not None else "Carta no identificada"
 
-             # Calcular el ancho y la altura del texto
-            (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            if carta is not None:
+                # Decir la palabra correspondiente a la carta
+                if carta_anterior != carta:
+                    threading.Thread(target=decir_palabra, args=(texto,)).start()
 
-            # Calcular la posición para centrar el texto en la parte inferior del frame
-            text_x = int((frame.shape[1] - text_width) / 2)
-            text_y = frame.shape[0] - 30  # Posición en la parte inferior
+                # Calcular el ancho y la altura del texto
+                (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
 
-            # Dibujar un cuadro de fondo azul detrás del texto
-            cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
+                # Calcular la posición para centrar el texto en la parte inferior del frame
+                text_x = int((frame.shape[1] - text_width) / 2)
+                text_y = frame.shape[0] - 30  # Posición en la parte inferior
 
-            # Dibujar el texto en blanco sobre el cuadro de fondo azul
-            cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                # Dibujar un cuadro de fondo azul detrás del texto
+                cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
+
+                # Dibujar el texto en blanco sobre el cuadro de fondo azul
+                cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Mostrar el frame en una ventana
         cv2.imshow("Video", frame)
