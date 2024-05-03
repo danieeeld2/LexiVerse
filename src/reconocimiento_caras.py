@@ -22,14 +22,18 @@ def leerCaras(directory):
 def reconocerCaras(known_faces, known_names, image):
     face_locations = face_recognition.face_locations(image)
     face_encodings = face_recognition.face_encodings(image, face_locations)
+    if len(face_encodings) == 0:
+        print("No se ha detectado ninguna cara")
+        return None
     for face_encoding in face_encodings:
         matches = face_recognition.compare_faces(known_faces, face_encoding)
-        name = "Desconocido"
         if True in matches:
             first_match_index = matches.index(True)
             name = known_names[first_match_index]
-        print("Encontrado a", name)
-    print("Va rapido??")
+            print("Encontrado a", name)
+            return name   
+        print("Desconocido")
+        return "Desconocido"
 
 def main():
     known_faces, known_names = leerCaras("caras/")

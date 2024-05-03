@@ -4,6 +4,9 @@ import numpy as np
 import pyttsx3
 import threading
 
+
+################ Funciones de prueba ################
+
 # Función para decir una palabra
 def decir_palabra(texto):
     engine = pyttsx3.init()

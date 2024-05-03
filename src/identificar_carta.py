@@ -1,4 +1,8 @@
 import json
+import cv2
+import numpy as np
+import pyttsx3
+import threading
 
 # Funcion para cargar un mapa en formato JSON
 def cargar_mapa(filename):
@@ -29,8 +33,31 @@ def identificar_carta(marcadores_detectados, mapa_cartas, umbral_coincidencia=3)
     # Retornar None si no se ha identificado ninguna carta
     return None
 
+def detectarAruco(detector, frame, mapa_cartas, mapa_palabras):
+    # Detectar marcadores ArUco en el frame
+    corners, ids, _ = detector.detectMarkers(frame)
+    # Dibujar los marcadores detectados en el frame
+    frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+
+    if ids is not None:
+        list_ids = [id[0] for id in ids]
+        # Identificar la carta correspondiente a los marcadores detectados
+        carta = identificar_carta(list_ids, mapa_cartas)
+        texto = mapa_palabras[carta]["ingles"] if carta is not None else "Carta no identificada"
+
+        if carta is not None:
+            # Decir la palabra correspondiente a la carta (Pendiente)
+
+            # Mostrar la carta identificada en la ventana
+            (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            text_x = int((frame.shape[1] - text_width) / 2)
+            text_y = frame.shape[0] - 30
+            cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
+            cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            
+
 # Función principal
-def main():
+def test():
     # Cargar el mapa de cartas
     mapa_cartas = cargar_mapa("./data/map.json")
     
@@ -45,4 +72,4 @@ def main():
 
 # Verificar si este archivo se está ejecutando como script
 if __name__ == "__main__":
-    main()
+    test()
