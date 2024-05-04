@@ -77,8 +77,28 @@ def main():
                 else:
                     # Crear perfil de usuario (Pendiente)
                     cola_hablar.put("No se ha reconocido tu cara, ¿Cómo te llamas?")
-                    # Preguntar al usuario su nombre mediante ventana emergente(Pendiente)
+                    # Preguntar al usuario su nombre mediante voz
+                    nombre = None
+                    cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                    while nombre is None:
+                        if not cola_datos1.empty():
+                            nombre = cola_datos1.get()
+                            # Comrpobar que es un nombre válido (Empieza con mayúscula)
+                            if nombre[0].isupper():
+                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                # Procesar la creación del nuevo perfil (Pendiente)
+                            else:
+                                nombre = None
 
+                            # Seguir mostrando frames en el video
+                            cv2.imshow('frame', frame)
+                            if cv2.waitKey(1) & 0xFF == ord('q'):
+                                break
+                            ret, frame = cap.read()
+
+                    cola_hablar.put("Bienvenido, " + nombre)
+                    iniciado = True
+                modo_juego = None
         else:
             if modo_juego is None:
                 # Preguntar al usuario el modo de juego
@@ -90,6 +110,11 @@ def main():
                         modo_juego = cola_datos1.get()
                         if "aprender" in modo_juego or "jugar" in modo_juego:
                             cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                        elif "cerrar sesión" in modo_juego:
+                            iniciado = False
+                            nombre = None
+                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                            cola_hablar.put("Hasta luego")
                         else:
                             modo_juego = None
 
@@ -99,33 +124,49 @@ def main():
                         break
                     ret, frame = cap.read()
             else:
-                # Aquí habria que iniciar el modo de juego (Pendiente)
-                if "aprender" in modo_juego:
-                    if recien_iniciado:
-                        cola_hablar.put("Modo de juego: " + modo_juego)
-                        recien_iniciado = False
-                        cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
-                    detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
-                    if not cola_datos1.empty():
-                        texto = cola_datos1.get()
-                        if "salir" in texto:
-                            modo_juego = None
-                            recien_iniciado = True
-                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
-                if "jugar" in modo_juego:
-                    if recien_iniciado:
-                        cola_hablar.put("Modo de juego: " + modo_juego)
-                        recien_iniciado = False
-                        cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
-                    # Crear modo de juego (Pendiente)
+                if modo_juego is not None:
+                    if "aprender" in modo_juego:
+                        if recien_iniciado:
+                            cola_hablar.put("Modo de juego: " + modo_juego)
+                            recien_iniciado = False
+                            cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                        # Procesar el modo de aprendizaje de cartas
+                        detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
+                        # Procesar cambiar de modo o cerrar sesión
+                        if not cola_datos1.empty():
+                            texto = cola_datos1.get()
+                            if "salir" in texto:
+                                modo_juego = None
+                                recien_iniciado = True
+                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                            elif "cerrar sesión" in texto:
+                                iniciado = False
+                                nombre = None
+                                recien_iniciado = True
+                                cola_hablar.put("Hasta luego")
+                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
 
-                    if not cola_datos1.empty():
-                        texto = cola_datos1.get()
-                        if "salir" in texto:
-                            modo_juego = None
-                            recien_iniciado = True
-                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
-                
+                if modo_juego is not None:
+                    if "jugar" in modo_juego:
+                        if recien_iniciado:
+                            cola_hablar.put("Modo de juego: " + modo_juego)
+                            recien_iniciado = False
+                            cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                        # Crear modo de juego (Pendiente)
+                        # Procesar cambiar de modo o cerrar sesión
+                        if not cola_datos1.empty():
+                            texto = cola_datos1.get()
+                            if "salir" in texto:
+                                modo_juego = None
+                                recien_iniciado = True
+                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                            elif "cerrar sesión" in texto:
+                                iniciado = False
+                                nombre = None
+                                recien_iniciado = True
+                                cola_hablar.put("Hasta luego")
+                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                    
 
         # Mostrar el frame en una ventana
         cv2.imshow('frame', frame)
