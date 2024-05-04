@@ -7,7 +7,7 @@ import speech_recognition as sr
 import sounddevice
 import pyaudio
 import pyttsx3
-from reconocimiento_caras import leerCaras, reconocerCaras
+from reconocimiento_caras import leerCaras, reconocerCaras, crearCodificacion
 from identificar_carta import  cargar_mapa, detectarAruco
 import time
 import queue
@@ -17,7 +17,7 @@ from reconocimiento_voz import  escuchar
 def main():
     # Inicializar las variables globales
     iniciado = False    # Variable que determina si se ha inciado sesión o no
-    known_faces, known_names = leerCaras("caras/")    # Cargar las caras conocidas
+    known_faces, known_names = leerCaras("face_encodes/")    # Cargar las caras conocidas
     r = sr.Recognizer()    # Inicializar el reconocedor de voz
     engine = pyttsx3.init()    # Inicializar el motor de texto a voz
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)   # Crear un diccionario de marcadores ArUco
@@ -28,8 +28,9 @@ def main():
     modo_juego = None   # Variable que determina el modo de juego
     recien_iniciado = True    # Variable que determina si se ha iniciado recientemente un modo
     cola_hablar = queue.Queue()    # Crear una cola para almacenar los textos a leer
-    cola_datos1 = queue.Queue()    # Crear una cola para almacenar los datos introducidos por voz
-    cola_datos2 = queue.Queue()    # Crear una cola auxiliar para el demonio de escucha
+    cola_datos = queue.Queue()    # Crear una cola para almacenar los datos introducidos por voz
+    cola_peticiones = queue.Queue()    # Crear una cola auxiliar para indicar peticiones al demonio de escucha
+    cola_codificacion = queue.Queue()    # Crear una cola auxiliar para llamar a la función de codificación de caras
 
     # Verificar si la cámara está disponible
     if not cap.isOpened():
@@ -50,8 +51,12 @@ def main():
     hilo_voz.start()
 
     # Crear un hilo para procesar los datos introducidos por voz
-    hilo_datos = threading.Thread(target=escuchar, daemon=True, args=(cola_datos1, cola_datos2))
+    hilo_datos = threading.Thread(target=escuchar, daemon=True, args=(cola_datos, cola_peticiones))
     hilo_datos.start()
+
+    # Crear un hilo para procesar la codificación de caras
+    hilo_codificacion = threading.Thread(target=crearCodificacion, daemon=True, args=(cola_codificacion, known_faces, known_names))
+    hilo_codificacion.start()
 
     # Bucle para capturar video
     while True:
@@ -79,41 +84,59 @@ def main():
                     cola_hablar.put("No se ha reconocido tu cara, ¿Cómo te llamas?")
                     # Preguntar al usuario su nombre mediante voz
                     nombre = None
-                    cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                    cola_peticiones.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
                     while nombre is None:
-                        if not cola_datos1.empty():
-                            nombre = cola_datos1.get()
+                        if not cola_datos.empty():
+                            nombre = cola_datos.get()
                             # Comrpobar que es un nombre válido (Empieza con mayúscula)
                             if nombre[0].isupper():
-                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
-                                # Procesar la creación del nuevo perfil (Pendiente)
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                cola_hablar.put("Se va a escanear tu cara, " + nombre + ". Por favor, mira al frente y no te muevas")
+                                # Meter espera de 7 segundos donde sigue mostrando frames
+                                start_time = time.time()
+                                while time.time() - start_time < 7:
+                                    cv2.imshow('frame', frame)
+                                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                                        exit(0)
+                                    ret, frame = cap.read()
+                                # Tomar frames para crear la codificación de la cara durante 3 segundos
+                                frames = []
+                                start_time = time.time()
+                                while time.time() - start_time < 3:
+                                    cv2.imshow('frame', frame)
+                                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                                        exit(0)
+                                    ret, frame = cap.read()
+                                    frames.append(frame)
+                                # Guardar la codificación de la cara en un archivo numpy
+                                cola_codificacion.put((nombre, frames)) # Se ejecuta en la hebra en segundo plano                                 
                             else:
                                 nombre = None
+                        
+                        # Seguir mostrando frames en el video
+                        cv2.imshow('frame', frame)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            exit(0)
+                        ret, frame = cap.read()
 
-                            # Seguir mostrando frames en el video
-                            cv2.imshow('frame', frame)
-                            if cv2.waitKey(1) & 0xFF == ord('q'):
-                                break
-                            ret, frame = cap.read()
-
-                    cola_hablar.put("Bienvenido, " + nombre)
+                    cola_hablar.put("Bienvenido, " + nombre + ". Tu perfil ha sido creado")
                     iniciado = True
                 modo_juego = None
         else:
             if modo_juego is None:
                 # Preguntar al usuario el modo de juego
                 cola_hablar.put("¿Qué modo de juego deseas jugar?")
-                cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                cola_peticiones.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
                 while modo_juego is None:
                     # Ver la respuesta del usuario
-                    if not cola_datos1.empty():
-                        modo_juego = cola_datos1.get()
+                    if not cola_datos.empty():
+                        modo_juego = cola_datos.get()
                         if "aprender" in modo_juego or "jugar" in modo_juego:
-                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                            cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                         elif "cerrar sesión" in modo_juego:
                             iniciado = False
                             nombre = None
-                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                            cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                             cola_hablar.put("Hasta luego")
                         else:
                             modo_juego = None
@@ -121,7 +144,7 @@ def main():
                     # Seguir mostrando frames en el video
                     cv2.imshow('frame', frame)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                        exit(0)
                     ret, frame = cap.read()
             else:
                 if modo_juego is not None:
@@ -129,43 +152,43 @@ def main():
                         if recien_iniciado:
                             cola_hablar.put("Modo de juego: " + modo_juego)
                             recien_iniciado = False
-                            cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                            cola_peticiones.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
                         # Procesar el modo de aprendizaje de cartas
                         detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
                         # Procesar cambiar de modo o cerrar sesión
-                        if not cola_datos1.empty():
-                            texto = cola_datos1.get()
+                        if not cola_datos.empty():
+                            texto = cola_datos.get()
                             if "salir" in texto:
                                 modo_juego = None
                                 recien_iniciado = True
-                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                             elif "cerrar sesión" in texto:
                                 iniciado = False
                                 nombre = None
                                 recien_iniciado = True
                                 cola_hablar.put("Hasta luego")
-                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
 
                 if modo_juego is not None:
                     if "jugar" in modo_juego:
                         if recien_iniciado:
                             cola_hablar.put("Modo de juego: " + modo_juego)
                             recien_iniciado = False
-                            cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                            cola_peticiones.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
                         # Crear modo de juego (Pendiente)
                         # Procesar cambiar de modo o cerrar sesión
-                        if not cola_datos1.empty():
-                            texto = cola_datos1.get()
+                        if not cola_datos.empty():
+                            texto = cola_datos.get()
                             if "salir" in texto:
                                 modo_juego = None
                                 recien_iniciado = True
-                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                             elif "cerrar sesión" in texto:
                                 iniciado = False
                                 nombre = None
                                 recien_iniciado = True
                                 cola_hablar.put("Hasta luego")
-                                cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                     
 
         # Mostrar el frame en una ventana

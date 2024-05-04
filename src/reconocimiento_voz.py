@@ -6,7 +6,7 @@ import time
 def comporbar_transcripcion(transcripcion):
     clave = "modo"
     if transcripcion is not None:
-        if clave in transcripcion:
+        if clave in transcripcion or transcripcion[0].isupper():
             return True
     return False
 

@@ -7,17 +7,41 @@ def leerCaras(directory):
     known_faces = []
     known_names = []
     for filename in os.listdir(directory):
-        image_path = os.path.join(directory, filename)
-        encode_file = os.path.join("face_encodes", os.path.splitext(filename)[0] + ".npy")
-        if os.path.exists(encode_file):
+        if filename.endswith(".npy"):
+            encode_file = os.path.join(directory, filename)
             encoding = np.load(encode_file)
-        else:
-            image = face_recognition.load_image_file(image_path)
-            encoding = face_recognition.face_encodings(image)[0]
-            np.save(encode_file, encoding)
-        known_faces.append(encoding)
-        known_names.append(os.path.splitext(filename)[0])
+            known_faces.append(encoding)
+            known_names.append(os.path.splitext(filename)[0])
     return known_faces, known_names
+
+def crearCodificacion(cola, known_faces, known_names):
+    while True:
+        if not cola.empty():
+            nombre, frames = cola.get()
+            encodings = []  # Lista para almacenar las codificaciones de todas las caras detectadas en todos los frames
+    
+            for frame in frames:
+                face_locations = face_recognition.face_locations(frame)
+                face_encodings = face_recognition.face_encodings(frame, face_locations)
+                
+                if len(face_encodings) == 0:
+                    print("No se ha detectado ninguna cara en un frame.")
+                    continue  # Continuar con el siguiente frame si no se detecta ninguna cara en este frame
+
+                for encoding in face_encodings:
+                    encodings.append(encoding)  # Agregar las codificaciones de las caras detectadas en este frame a la lista
+            
+            if len(encodings) == 0:
+                print("No se ha detectado ninguna cara en ninguno de los frames.")
+                return None
+            
+            # Calcular la codificación promedio
+            avg_encoding = np.mean(encodings, axis=0)
+            # Guardar la codificación promedio en un archivo numpy
+            np.save(f"face_encodes/{nombre}.npy", avg_encoding)
+            print("Cara guardada")
+            known_faces.append(avg_encoding)
+            known_names.append(nombre)
 
 def reconocerCaras(known_faces, known_names, image):
     face_locations = face_recognition.face_locations(image)
