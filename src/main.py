@@ -9,8 +9,10 @@ import pyaudio
 import pyttsx3
 from reconocimiento_caras import leerCaras, reconocerCaras
 from identificar_carta import  cargar_mapa, detectarAruco
-from hebras import preguntar_modo
 import time
+import queue
+from hablar import hablar
+from reconocimiento_voz import  escuchar
 
 def main():
     # Inicializar las variables globales
@@ -23,13 +25,34 @@ def main():
     mapa_cartas = cargar_mapa("./data/map.json")    # Cargar el mapa de cartas
     mapa_palabras = cargar_mapa("./data/cartas.json")    # Cargar el mapa de palabras
     cap = cv2.VideoCapture(0)    # Inicializar la cámara
-    modo_juego = "Prueba"   # Variable que determina el modo de juego
+    modo_juego = None   # Variable que determina el modo de juego
+    recien_iniciado = True    # Variable que determina si se ha iniciado recientemente un modo
+    cola_hablar = queue.Queue()    # Crear una cola para almacenar los textos a leer
+    cola_datos1 = queue.Queue()    # Crear una cola para almacenar los datos introducidos por voz
+    cola_datos2 = queue.Queue()    # Crear una cola auxiliar para el demonio de escucha
 
     # Verificar si la cámara está disponible
     if not cap.isOpened():
         print("Error: No se puede abrir la cámara")
         return
     
+    # Configurar motor de texto a voz
+    engine.setProperty('voice', "spanish")
+    engine.setProperty('rate', 160)
+    engine.setProperty('volume', 1)
+
+    # Configurar nivel de ruidez del micrófono
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source, duration=3)
+    
+    # Crear un hilo para procesar los texto a voz
+    hilo_voz = threading.Thread(target=hablar, daemon=True, args=(cola_hablar, engine))
+    hilo_voz.start()
+
+    # Crear un hilo para procesar los datos introducidos por voz
+    hilo_datos = threading.Thread(target=escuchar, daemon=True, args=(cola_datos1, cola_datos2))
+    hilo_datos.start()
+
     # Bucle para capturar video
     while True:
         # Leer un frame del video
@@ -50,16 +73,46 @@ def main():
                     iniciado = True
 
                     # Cargar sesion si se ha reconocido la cara (Pendiente)
-                    engine.setProperty('voice', 'spanish')
+                    cola_hablar.put("Bienvenido, " + nombre)
                 else:
                     # Crear perfil de usuario (Pendiente)
-                    time.sleep(1)
+                    cola_hablar.put("No se ha reconocido tu cara, ¿Cómo te llamas?")
+                    # Preguntar al usuario su nombre mediante ventana emergente(Pendiente)
+
         else:
             if modo_juego is None:
-                # Preguntar al usuario el modo de juego (Pendiente)
-                time.sleep(1)
+                # Preguntar al usuario el modo de juego
+                cola_hablar.put("¿Qué modo de juego deseas jugar?")
+                cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                while modo_juego is None:
+                    # Ver la respuesta del usuario
+                    if not cola_datos1.empty():
+                        modo_juego = cola_datos1.get()
+                        if "aprender" in modo_juego or "jugar" in modo_juego:
+                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                        else:
+                            modo_juego = None
+
+                    # Seguir mostrando frames en el video
+                    cv2.imshow('frame', frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                    ret, frame = cap.read()
             else:
-                detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
+                # Aquí habria que iniciar el modo de juego (Pendiente)
+                if "aprender" in modo_juego:
+                    if recien_iniciado:
+                        cola_hablar.put("Modo de juego: " + modo_juego)
+                        recien_iniciado = False
+                        cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                    detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
+                    if not cola_datos1.empty():
+                        texto = cola_datos1.get()
+                        if "salir" in texto:
+                            modo_juego = None
+                            recien_iniciado = True
+                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+
 
         # Mostrar el frame en una ventana
         cv2.imshow('frame', frame)
