@@ -112,7 +112,20 @@ def main():
                             modo_juego = None
                             recien_iniciado = True
                             cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                if "jugar" in modo_juego:
+                    if recien_iniciado:
+                        cola_hablar.put("Modo de juego: " + modo_juego)
+                        recien_iniciado = False
+                        cola_datos2.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
+                    # Crear modo de juego (Pendiente)
 
+                    if not cola_datos1.empty():
+                        texto = cola_datos1.get()
+                        if "salir" in texto:
+                            modo_juego = None
+                            recien_iniciado = True
+                            cola_datos2.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+                
 
         # Mostrar el frame en una ventana
         cv2.imshow('frame', frame)
