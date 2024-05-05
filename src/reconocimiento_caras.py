@@ -2,6 +2,7 @@ import os
 import cv2
 import face_recognition
 import numpy as np
+import json
 
 def leerCaras(directory):
     known_faces = []
@@ -14,10 +15,25 @@ def leerCaras(directory):
             known_names.append(os.path.splitext(filename)[0])
     return known_faces, known_names
 
+
+def crearPerfil(nombre, idioma, archivo):
+    with open(archivo, "r") as file:
+        data = json.load(file)
+
+    # Añadir el nuevo perfil al diccionario
+    data[nombre] = {
+        "idioma": idioma,
+        "puntos" : 0
+    }
+
+    # Guardar el diccionario actualizado en el archivo
+    with open(archivo, "w") as file:
+        json.dump(data, file, indent=4)
+
 def crearCodificacion(cola, known_faces, known_names):
     while True:
         if not cola.empty():
-            nombre, frames = cola.get()
+            nombre, frames, idioma, archivo = cola.get()
             encodings = []  # Lista para almacenar las codificaciones de todas las caras detectadas en todos los frames
     
             for frame in frames:
@@ -42,6 +58,8 @@ def crearCodificacion(cola, known_faces, known_names):
             print("Cara guardada")
             known_faces.append(avg_encoding)
             known_names.append(nombre)
+            crearPerfil(nombre, idioma, archivo)
+    
 
 def reconocerCaras(known_faces, known_names, image):
     face_locations = face_recognition.face_locations(image)

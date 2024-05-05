@@ -8,11 +8,12 @@ import sounddevice
 import pyaudio
 import pyttsx3
 from reconocimiento_caras import leerCaras, reconocerCaras, crearCodificacion
-from identificar_carta import  cargar_mapa, detectarAruco
+from identificar_carta import  cargar_mapa, detectarAruco, guardar_mapa
 import time
 import queue
 from hablar import hablar
 from reconocimiento_voz import  escuchar
+from unidecode import unidecode
 
 def main():
     # Inicializar las variables globales
@@ -25,6 +26,9 @@ def main():
     mapa_cartas = cargar_mapa("./data/map.json")    # Cargar el mapa de cartas
     mapa_palabras = cargar_mapa("./data/cartas.json")    # Cargar el mapa de palabras
     cap = cv2.VideoCapture(0)    # Inicializar la cámara
+    perfiles = cargar_mapa("./data/usuarios.json")    # Cargar los perfiles de usuario
+    perfil_activo = None    # Variable que determina el perfil activo
+    idioma = "español"    # Variable que determina el idioma activo
     modo_juego = None   # Variable que determina el modo de juego
     recien_iniciado = True    # Variable que determina si se ha iniciado recientemente un modo
     cola_hablar = queue.Queue()    # Crear una cola para almacenar los textos a leer
@@ -77,10 +81,12 @@ def main():
                 if nombre != "Desconocido" :
                     iniciado = True
 
-                    # Cargar sesion si se ha reconocido la cara (Pendiente)
+                    # Cargar sesion si se ha reconocido la cara 
                     cola_hablar.put("Bienvenido, " + nombre)
+                    perfil_activo = perfiles[nombre]
+                    idioma = perfil_activo["idioma"]
                 else:
-                    # Crear perfil de usuario (Pendiente)
+                    # Crear perfil de usuario 
                     cola_hablar.put("No se ha reconocido tu cara, ¿Cómo te llamas?")
                     # Preguntar al usuario su nombre mediante voz
                     nombre = None
@@ -109,7 +115,7 @@ def main():
                                     ret, frame = cap.read()
                                     frames.append(frame)
                                 # Guardar la codificación de la cara en un archivo numpy
-                                cola_codificacion.put((nombre, frames)) # Se ejecuta en la hebra en segundo plano                                 
+                                cola_codificacion.put((nombre, frames, "español", "./data/usuarios.json")) # Se ejecuta en la hebra en segundo plano                                 
                             else:
                                 nombre = None
                         
@@ -131,7 +137,7 @@ def main():
                     # Ver la respuesta del usuario
                     if not cola_datos.empty():
                         modo_juego = cola_datos.get()
-                        if "aprender" in modo_juego or "jugar" in modo_juego:
+                        if "aprender" in modo_juego or "jugar" in modo_juego or "idioma" in modo_juego:
                             cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                         elif "cerrar sesión" in modo_juego:
                             iniciado = False
@@ -154,7 +160,7 @@ def main():
                             recien_iniciado = False
                             cola_peticiones.put("Procesar") # Indica al demonio de escucha que debe escuchar en segundo plano
                         # Procesar el modo de aprendizaje de cartas
-                        detectarAruco(detector, frame, mapa_cartas, mapa_palabras)
+                        detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma)
                         # Procesar cambiar de modo o cerrar sesión
                         if not cola_datos.empty():
                             texto = cola_datos.get()
@@ -188,6 +194,24 @@ def main():
                                 nombre = None
                                 recien_iniciado = True
                                 cola_hablar.put("Hasta luego")
+                                cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
+
+                if modo_juego is not None:
+                    if "idioma" in modo_juego:
+                        if recien_iniciado:
+                            cola_hablar.put("Cambio de idioma activado. ¿Qué idioma deseas jugar?")
+                            recien_iniciado = False
+                            cola_peticiones.put("Procesar")
+                        # Procesar el cambio de idioma
+                        if not cola_datos.empty():
+                            idioma = cola_datos.get()
+                            if idioma == "español" or idioma == "inglés" or idioma == "francés":
+                                cola_hablar.put("Idioma cambiado a " + idioma)
+                                recien_iniciado = True
+                                modo_juego = None
+                                idioma = unidecode(idioma)
+                                perfiles[nombre]["idioma"] = idioma
+                                guardar_mapa(perfiles, "./data/usuarios.json")
                                 cola_peticiones.get() # Limpiar la cola de datos auxiliar para que el demonio deje de escuchar
                     
 

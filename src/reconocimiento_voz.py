@@ -8,6 +8,9 @@ def comporbar_transcripcion(transcripcion):
     if transcripcion is not None:
         if clave in transcripcion or transcripcion[0].isupper():
             return True
+        elif "español" in transcripcion or "inglés" in transcripcion or "francés" in transcripcion:
+            return True
+    
     return False
 
 def escuchar(cola1, cola2):

@@ -13,6 +13,13 @@ def cargar_mapa(filename):
     # Retornar el mapa 
     return mapa
 
+# Funcion para sobreescribir un mapa
+def guardar_mapa(mapa, filename):
+    # Guardar el mapa en el archivo JSON
+    with open(filename, "w") as file:
+        json.dump(mapa, file, indent=4)
+
+
 # Funcion para identificar una carta basada en los marcadores
 def identificar_carta(marcadores_detectados, mapa_cartas, umbral_coincidencia=3):
     # Convertir los identificadores de los marcadores en una tupla ordenada
@@ -33,7 +40,7 @@ def identificar_carta(marcadores_detectados, mapa_cartas, umbral_coincidencia=3)
     # Retornar None si no se ha identificado ninguna carta
     return None
 
-def detectarAruco(detector, frame, mapa_cartas, mapa_palabras):
+def detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma):
     # Detectar marcadores ArUco en el frame
     corners, ids, _ = detector.detectMarkers(frame)
     # Dibujar los marcadores detectados en el frame
@@ -43,7 +50,7 @@ def detectarAruco(detector, frame, mapa_cartas, mapa_palabras):
         list_ids = [id[0] for id in ids]
         # Identificar la carta correspondiente a los marcadores detectados
         carta = identificar_carta(list_ids, mapa_cartas)
-        texto = mapa_palabras[carta]["ingles"] if carta is not None else "Carta no identificada"
+        texto = mapa_palabras[carta][idioma] if carta is not None else "Carta no identificada"
 
         if carta is not None:
             # Decir la palabra correspondiente a la carta (Pendiente)
