@@ -10,6 +10,8 @@ def comporbar_transcripcion(transcripcion):
             return True
         elif "español" in transcripcion or "inglés" in transcripcion or "francés" in transcripcion:
             return True
+        elif "cerrar sesión" in transcripcion:
+            return True
     
     return False
 
