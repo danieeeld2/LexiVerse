@@ -23,7 +23,21 @@ def crearPerfil(nombre, idioma, archivo):
     # Añadir el nuevo perfil al diccionario
     data[nombre] = {
         "idioma": idioma,
-        "puntos" : 0
+        "puntos" : 0,
+        "frecuencia" : {
+            "Carta1" : 0,
+            "Carta2" : 0,
+            "Carta3" : 0,
+            "Carta4" : 0,
+            "Carta5" : 0,
+            "Carta6" : 0,
+            "Carta7" : 0,
+            "Carta8" : 0,
+            "Carta9" : 0,
+            "Carta10" : 0,
+            "Carta11" : 0,
+            "Carta12" : 0
+        }
     }
 
     # Guardar el diccionario actualizado en el archivo

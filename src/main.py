@@ -74,6 +74,8 @@ def main():
 
         # Flujo principal del programa
         if not iniciado:
+            # Recargar JSON por si se crear un nuevo perfil
+            perfiles = cargar_mapa("./data/usuarios.json")
             # Inicializar la sesión
             copia_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
             nombre = reconocerCaras(known_faces, known_names, copia_frame)
@@ -209,6 +211,8 @@ def main():
                                 cola_hablar.put("Idioma cambiado a " + idioma)
                                 recien_iniciado = True
                                 modo_juego = None
+                                # Recargar JSON por si se crearon nuevos usuarios
+                                perfiles = cargar_mapa("./data/usuarios.json")
                                 idioma = unidecode(idioma)
                                 perfiles[nombre]["idioma"] = idioma
                                 guardar_mapa(perfiles, "./data/usuarios.json")
