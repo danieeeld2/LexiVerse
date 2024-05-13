@@ -31,6 +31,7 @@ def main():
     idioma = "español"    # Variable que determina el idioma activo
     modo_juego = None   # Variable que determina el modo de juego
     recien_iniciado = True    # Variable que determina si se ha iniciado recientemente un modo
+    evento_hablar = threading.Event()    # Crear un evento para activar la lectura de texto
     cola_hablar = queue.Queue()    # Crear una cola para almacenar los textos a leer
     cola_datos = queue.Queue()    # Crear una cola para almacenar los datos introducidos por voz
     evento_procesar = threading.Event()    # Crear un evento para activar la escucha del microfono
@@ -51,11 +52,11 @@ def main():
         r.adjust_for_ambient_noise(source, duration=3)
     
     # Crear un hilo para procesar los texto a voz
-    hilo_voz = threading.Thread(target=hablar, daemon=True, args=(cola_hablar, engine))
+    hilo_voz = threading.Thread(target=hablar, daemon=True, args=(cola_hablar, engine, evento_hablar))
     hilo_voz.start()
 
     # Crear un hilo para procesar los datos introducidos por voz
-    hilo_datos = threading.Thread(target=escuchar, daemon=True, args=(cola_datos, evento_procesar))
+    hilo_datos = threading.Thread(target=escuchar, daemon=True, args=(cola_datos, evento_procesar, evento_hablar))
     hilo_datos.start()
 
     # Crear un hilo para procesar la codificación de caras

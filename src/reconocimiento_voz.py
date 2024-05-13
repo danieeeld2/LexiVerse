@@ -15,10 +15,10 @@ def comporbar_transcripcion(transcripcion):
     
     return False
 
-def escuchar(cola1, evento):
+def escuchar(cola1, evento1, evento2):
     r = sr.Recognizer()
     while True:
-        if evento.is_set():
+        if evento1.is_set() and not evento2.is_set():
             with sr.Microphone() as source:
                 audio = r.listen(source, phrase_time_limit=4)
             try:
