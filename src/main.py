@@ -14,6 +14,8 @@ import queue
 from hablar import hablar
 from reconocimiento_voz import  escuchar
 from unidecode import unidecode
+from juego import seleccionar_carta, mostrar_carta_y_detectar_carta, carta_acertada, carta_no_acertada
+import random
 
 def main():
     # Inicializar las variables globales
@@ -36,6 +38,8 @@ def main():
     cola_datos = queue.Queue()    # Crear una cola para almacenar los datos introducidos por voz
     evento_procesar = threading.Event()    # Crear un evento para activar la escucha del microfono
     cola_codificacion = queue.Queue()    # Crear una cola auxiliar para llamar a la función de codificación de caras
+    racha_aciertos = 0    # Variable que determina la racha de aciertos del usuario
+    carta_detectada = None    # Variable que determina si se ha detectado una carta
 
     # Verificar si la cámara está disponible
     if not cap.isOpened():
@@ -163,7 +167,11 @@ def main():
                             recien_iniciado = False
                             evento_procesar.set() # Indica al demonio de escucha que debe escuchar en segundo plano
                         # Procesar el modo de aprendizaje de cartas
-                        detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma)
+                        nueva_carta_detectada = detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma)
+                        # if nueva_carta_detectada != carta_detectada:
+                        #     carta_detectada = nueva_carta_detectada
+                        #     if nueva_carta_detectada is not None:
+                        #         cola_hablar.put(nueva_carta_detectada)
                         # Procesar cambiar de modo o cerrar sesión
                         if not cola_datos.empty():
                             texto = cola_datos.get()
@@ -184,20 +192,73 @@ def main():
                             cola_hablar.put("Modo de juego: " + modo_juego)
                             recien_iniciado = False
                             evento_procesar.set() # Indica al demonio de escucha que debe escuchar en segundo plano
-                        # Crear modo de juego (Pendiente)
-                        # Procesar cambiar de modo o cerrar sesión
-                        if not cola_datos.empty():
-                            texto = cola_datos.get()
-                            if "salir" in texto:
-                                modo_juego = None
-                                recien_iniciado = True
-                                evento_procesar.clear() # Desactivar la escucha del microfono
-                            elif "cerrar sesión" in texto:
-                                iniciado = False
-                                nombre = None
-                                recien_iniciado = True
-                                cola_hablar.put("Hasta luego")
-                                evento_procesar.clear() # Desactivar la escucha del microfono
+                            # Recargar JSON por si es un usuario recien creado
+                            perfiles = cargar_mapa("./data/usuarios.json")
+                            perfil_activo = perfiles[nombre]
+                            
+                        # Procesamiento del modo de juego
+                        # Elegir carta al azar basado en las estadísticas de acierto del usuario
+                        carta_seleccionada = seleccionar_carta(perfil_activo)
+                        # cola_hablar.put("Busca la carta: " + mapa_palabras[carta_seleccionada][idioma])
+                        adivinando = True
+                        while adivinando:
+                            # Mostrar la palabra en la pantalla
+                            respuesta = mostrar_carta_y_detectar_carta(cv2, frame, mapa_palabras[carta_seleccionada][idioma], detector, mapa_cartas, mapa_palabras, idioma, perfil_activo["puntos"])
+                            if respuesta is not None:
+                                adivinando = False
+                                if respuesta:
+                                    cola_hablar.put("¡Correcto, has acertado!")
+                                    # Procesar la racha de aciertos
+                                    racha_aciertos += 1
+                                    # Actualizar la frecuencia de aciertos de la carta seleccionada
+                                    perfil_activo["frecuencia"][carta_seleccionada] += 1
+                                    # Sumar puntos
+                                    puntos = random.randint(1, 10)*racha_aciertos
+                                    perfil_activo["puntos"] += puntos
+                                    guardar_mapa(perfiles, "./data/usuarios.json") # Guardar los cambios en el archivo JSON
+                                    # Mostrar acierto durante 4 segundos
+                                    time_start = time.time()
+                                    while time.time() - time_start < 4:
+                                        carta_acertada(cv2, frame, mapa_palabras[carta_seleccionada][idioma])
+                                        # Seguir mostrando frames en el video
+                                        cv2.imshow('frame', frame)
+                                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                                            exit(0)
+                                        ret, frame = cap.read()
+                                else:
+                                    cola_hablar.put("Lo siento, has fallado")
+                                    racha_aciertos = 0 # Reiniciar la racha de aciertos
+                                    # Mostrar error durante 4 segundos
+                                    time_start = time.time()
+                                    while time.time() - time_start < 4:
+                                        carta_no_acertada(cv2, frame, mapa_palabras[carta_seleccionada][idioma])
+                                        # Seguir mostrando frames en el video
+                                        cv2.imshow('frame', frame)
+                                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                                            exit(0)
+                                        ret, frame = cap.read()
+                            # Seguir mostrando frames en el video
+                            cv2.imshow('frame', frame)
+                            if cv2.waitKey(1) & 0xFF == ord('q'):
+                                exit(0)
+                            ret, frame = cap.read()
+                            # Procesar cambiar de modo o cerrar sesión
+                            if not cola_datos.empty():
+                                texto = cola_datos.get()
+                                if "salir" in texto:
+                                    guardar_mapa(perfiles, "./data/usuarios.json") # Guardar los cambios en el archivo JSON
+                                    modo_juego = None
+                                    adivinando = False
+                                    recien_iniciado = True
+                                    evento_procesar.clear() # Desactivar la escucha del microfono
+                                elif "cerrar sesión" in texto:
+                                    guardar_mapa(perfiles, "./data/usuarios.json") # Guardar los cambios en el archivo JSON
+                                    iniciado = False
+                                    nombre = None
+                                    adivinando = False
+                                    recien_iniciado = True
+                                    cola_hablar.put("Hasta luego")
+                                    evento_procesar.clear() # Desactivar la escucha del microfono
 
                 if modo_juego is not None:
                     if "idioma" in modo_juego:
@@ -215,6 +276,8 @@ def main():
                                 # Recargar JSON por si se crearon nuevos usuarios
                                 perfiles = cargar_mapa("./data/usuarios.json")
                                 idioma = unidecode(idioma)
+                                if idioma == "espanol":
+                                    idioma = "español"
                                 perfiles[nombre]["idioma"] = idioma
                                 guardar_mapa(perfiles, "./data/usuarios.json")
                                 evento_procesar.clear()

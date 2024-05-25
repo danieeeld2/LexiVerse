@@ -61,7 +61,9 @@ def detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma):
             text_y = frame.shape[0] - 30
             cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
             cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            
+
+            return texto
+    return None            
 
 # Función principal
 def test():
