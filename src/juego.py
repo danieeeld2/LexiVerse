@@ -17,7 +17,7 @@ def seleccionar_carta(perfil):
 def mostrar_carta_y_detectar_carta(cv2, frame, texto, detector, mapa_cartas, mapa_palabras, idioma, puntuacion):
     # Detectar marcadores ArUco en el frame
     corners, ids, _ = detector.detectMarkers(frame)
-    if ids is not None:
+    if ids is not None and len(ids) >= 3:
         list_ids = [id[0] for id in ids]
         # Identificar la carta correspondiente a los marcadores detectados
         carta = identificar_carta(list_ids, mapa_cartas)
