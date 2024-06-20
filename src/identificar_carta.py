@@ -53,14 +53,24 @@ def detectarAruco(detector, frame, mapa_cartas, mapa_palabras, idioma):
         texto = mapa_palabras[carta][idioma] if carta is not None else "Carta no identificada"
 
         if carta is not None:
-            # Decir la palabra correspondiente a la carta (Pendiente)
+            # Calcular el centro de la carta utilizando los marcadores
+            num_markers = len(corners)
+            if num_markers >= 3:  # Asegurarse de que hay al menos 3 marcadores
+                # Calcular el centro basado en los marcadores visibles
+                center_x = int(np.mean([corner[0][:, 0].mean() for corner in corners]))
+                center_y = int(np.mean([corner[0][:, 1].mean() for corner in corners]))
 
-            # Mostrar la carta identificada en la ventana
-            (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-            text_x = int((frame.shape[1] - text_width) / 2)
-            text_y = frame.shape[0] - 30
-            cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
-            cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                # Obtener las dimensiones del texto
+                (text_width, text_height), _ = cv2.getTextSize(texto, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+                text_x = center_x - text_width // 2
+                text_y = center_y + text_height // 2
+
+                # Dibujar el rectángulo de fondo para el texto
+                cv2.rectangle(frame, (text_x - 10, text_y - text_height - 10), 
+                              (text_x + text_width + 10, text_y + 10), (255, 0, 0), -1)
+
+                # Poner el texto centrado en la carta
+                cv2.putText(frame, texto, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
             return texto
     return None            
