@@ -18,10 +18,28 @@
         }
     },
     "Daniel": {
-        "idioma": "espa\u00f1ol",
-        "puntos": 1,
+        "idioma": "frances",
+        "puntos": 32,
         "frecuencia": {
             "Carta1": 1,
+            "Carta2": 0,
+            "Carta3": 0,
+            "Carta4": 0,
+            "Carta5": 1,
+            "Carta6": 0,
+            "Carta7": 1,
+            "Carta8": 1,
+            "Carta9": 0,
+            "Carta10": 2,
+            "Carta11": 0,
+            "Carta12": 1
+        }
+    },
+    "Miguel": {
+        "idioma": "frances",
+        "puntos": 0,
+        "frecuencia": {
+            "Carta1": 0,
             "Carta2": 0,
             "Carta3": 0,
             "Carta4": 0,
@@ -35,8 +53,8 @@
             "Carta12": 0
         }
     },
-    "Miguel": {
-        "idioma": "frances",
+    "Miguel \u00c1ngel": {
+        "idioma": "ingles",
         "puntos": 0,
         "frecuencia": {
             "Carta1": 0,
