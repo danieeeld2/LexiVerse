@@ -52,3 +52,13 @@ Finalmente, hace uso de `face_recognition` para hacer la gestión de LogIn. Las 
 En la propuesta inicial, añadí un par de ideas extras, como bonificaciones al decir una carta por voz, pero esto aumentaba la carga computacional, por lo que la lectura de frames iba menos fluida. Decidí que era mejor priorizar una esperiencia fluida que meter complejidad por incluir más código. Por otro lado, también indiqué que el programa leería las palabras en alto, pero las voces que tengo instaladas en el sistema no ofrecen una experiencia fluida, por lo que decidí descartarlo.
 
 Finalmente, el modo contrareloj ha sido eliminado y los puntos otorgados al eliminar una carta se deciden por una bonificación aleatoria, tiempo que tarda en encontrar la carta y la frecuencia de acierto de las cartas.
+
+### Dependencias
+
+- `opencv`
+- `numpy`
+- `sounddevice`
+- `face_recognition`
+- `pyaudio`
+- `speech_recognition`
+- `pyttsx3`
